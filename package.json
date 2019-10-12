@@ -105,6 +105,7 @@
     "simple-statistics": "^0.7.0",
     "socket.io": "~2.1.1",
     "style-loader": "^0.23.1",
+    "svelte-loader": "^2.13.6",
     "swagger-ui-dist": "^3.23.5",
     "swagger-ui-express": "^4.1.2",
     "terser": "^3.17.0",

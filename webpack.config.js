@@ -86,6 +86,7 @@ pluginArray.push(
       "pt",
       "ro",
       "ru",
+
       "sk",
       "sv",
       "zh_cn",
@@ -102,6 +103,7 @@ const rules = [
       loader: "babel-loader"
     }
   },
+
   {
     test: /\.(jpe?g|png|gif)$/i,
     loader: "file-loader",
@@ -113,11 +115,13 @@ const rules = [
     },
     exclude: /node_modules/
   },
+
   {
     test: /\.css$/,
     loaders: ["style-loader", "css-loader"],
     exclude: /node_modules/
   },
+
   {
     test: require.resolve("jquery"),
     use: [
@@ -160,11 +164,32 @@ if (process.env.NODE_ENV == "development") {
       formatter: require("eslint/lib/cli-engine/formatters/stylish")
     }
   });
+
+  rules.unshift({
+    test: /\.svelte$/,
+    use: {
+      loader: "svelte-loader",
+      options: {
+        emitCss: true,
+        hotReload: true
+      }
+    }
+  });
 }
 
 const optimization = {};
 
 if (process.env.NODE_ENV !== "development") {
+  rules.unshift({
+    test: /\.svelte$/,
+    use: {
+      loader: "svelte-loader",
+      options: {
+        emitCss: true,
+        hotReload: false
+      }
+    }
+  });
   optimization.minimizer = [
     new TerserPlugin({
       cache: true,
@@ -197,6 +222,13 @@ module.exports = {
   devtool: sourceMapType,
   optimization,
   plugins: pluginArray,
+  resolve: {
+    alias: {
+      svelte: path.resolve("node_modules", "svelte")
+    },
+    extensions: [".mjs", ".js", ".svelte"],
+    mainFields: ["svelte", "browser", "module", "main"]
+  },
   module: {
     rules
   }
