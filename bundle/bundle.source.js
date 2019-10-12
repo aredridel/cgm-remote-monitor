@@ -2,35 +2,26 @@ import '../static/css/drawer.css';
 import '../static/css/dropdown.css';
 import '../static/css/sgv.css';
 
-$ = require("jquery");
+import _ from 'lodash';
+import d3 from 'd3';
+import storage from 'js-storage';
+import moment from 'moment-timezone';
 
-require('jquery-ui-bundle');
+import client from '../lib/client';
+import admin_plugins_ from '../lib/admin_plugins/';
+import units_ from '../lib/units';
 
-window._ = require('lodash');
-window.d3 = require('d3');
-
-require('jquery.tooltips');
-
-window.Storage = require('js-storage');
-
-require('flot');
-require('../node_modules/flot/jquery.flot.time');
-require('../node_modules/flot/jquery.flot.pie');
-require('../node_modules/flot/jquery.flot.fillbetween');
-
-window.moment = require('moment-timezone');
+window._ = _;
+window.d3 = d3;
+window.Storage = storage;
+window.moment = moment;
 
 window.Nightscout = window.Nightscout || {};
 
 window.Nightscout = {
-    client: require('../lib/client'),
-    units: require('../lib/units')(),
-    admin_plugins: require('../lib/admin_plugins/')()
+    client, 
+    units: units_(),
+    admin_plugins: admin_plugins_()
 };
 
 console.info('Nightscout bundle ready');
-
-// Needed for Hot Module Replacement
-if(typeof(module.hot) !== 'undefined') {
-    module.hot.accept() // eslint-disable-line no-undef  
-  }

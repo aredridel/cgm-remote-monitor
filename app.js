@@ -1,20 +1,27 @@
-'use strict';
+import _get from 'lodash/get';
+import express from 'express';
+import compression from 'compression';
+import bodyParser from 'body-parser';
+import helmet from 'helmet';
+import heapdump from 'heapdump';
+import swaggerUi from 'swagger-ui-express';
+import minify from 'express-minify';
+import cssmin from 'cssmin';
+import errorhandler from 'errorhandler';
 
-const _get = require('lodash/get');
-const express = require('express');
-const compression = require('compression');
-const bodyParser = require('body-parser');
-
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+const swaggerDocument = JSON.parse(fs.readFileSync('./swagger.json'));
 
 function create (env, ctx) {
   var app = express();
   var appInfo = env.name + ' ' + env.version;
   app.set('title', appInfo);
   app.enable('trust proxy'); // Allows req.secure test on heroku https connections.
-  var insecureUseHttp = env.insecureUseHttp;
-  var secureHstsHeader = env.secureHstsHeader;
+  var {
+    insecureUseHttp,
+    secureHstsHeader
+  } = env;
   if (!insecureUseHttp) {
     console.info('Redirecting http traffic to https because INSECURE_USE_HTTP=', insecureUseHttp);
     app.use((req, res, next) => {
@@ -24,21 +31,23 @@ function create (env, ctx) {
         res.redirect(307, `https://${req.header('host')}${req.url}`);
       }
     });
-    if (secureHstsHeader) { // Add HSTS (HTTP Strict Transport Security) header
+    if (secureHstsHeader) {
+      // Add HSTS (HTTP Strict Transport Security) header
       console.info('Enabled SECURE_HSTS_HEADER (HTTP Strict Transport Security)');
-      const helmet = require('helmet');
-      var includeSubDomainsValue = env.secureHstsHeaderIncludeSubdomains;
-      var preloadValue = env.secureHstsHeaderPreload;
+      var includeSubDomains = env.secureHstsHeaderIncludeSubdomains;
+      var preload = env.secureHstsHeaderPreload;
       app.use(helmet({
         hsts: {
           maxAge: 31536000
-          , includeSubDomains: includeSubDomainsValue
-          , preload: preloadValue
+          , includeSubDomains
+          , preload
         }
         , frameguard: false
       }));
       if (env.secureCsp) {
-        var secureCspReportOnly = env.secureCspReportOnly;
+        var {
+          secureCspReportOnly
+        } = env;
         if (secureCspReportOnly) {
           console.info('Enabled SECURE_CSP (Content Security Policy header). Not enforcing. Report only.');
         } else {
@@ -63,11 +72,7 @@ function create (env, ctx) {
         app.use(helmet.featurePolicy({ features: { payment: ["'none'"], } }));
         app.use(bodyParser.json({ type: ['json', 'application/csp-report'] }));
         app.post('/report-violation', (req, res) => {
-          if (req.body) {
-            console.log('CSP Violation: ', req.body)
-          } else {
-            console.log('CSP Violation: No data received!')
-          }
+          req.body;
           res.status(204).end()
         })
       }
@@ -114,12 +119,12 @@ function create (env, ctx) {
     });
   }
 
-    ///////////////////////////////////////////////////
-    // api and json object variables
-    ///////////////////////////////////////////////////
-    var api = require('./lib/api/')(env, ctx);
-    var api3 = require('./lib/api3/')(env, ctx);
-    var ddata = require('./lib/data/endpoints')(env, ctx);
+  ///////////////////////////////////////////////////
+  // api and json object variables
+  ///////////////////////////////////////////////////
+  var api = require('./lib/api/')(env, ctx);
+  var api3 = require('./lib/api3/')(env, ctx);
+  var ddata = require('./lib/data/endpoints')(env, ctx);
 
   app.use(compression({
     filter: function shouldCompress (req, res) {
@@ -151,13 +156,13 @@ function create (env, ctx) {
     , "/clock.html": "clock.html"
   };
 
-  Object.keys(appPages).forEach(function(page) {
+  for (const page of Object.keys(appPages)) {
     app.get(page, (req, res) => {
       res.render(appPages[page], {
         locals: app.locals
       });
     });
-  });
+  }
 
   app.get("/appcache/*", (req, res) => {
     res.render("nightscout.appcache", {
@@ -189,7 +194,6 @@ function create (env, ctx) {
   });
 
   if (env.settings.isEnabled('dumps')) {
-    var heapdump = require('heapdump');
     app.get('/api/v2/dumps/start', function(req, res) {
       var path = new Date().toISOString() + '.heapsnapshot';
       path = path.replace(/:/g, '-');
@@ -206,7 +210,6 @@ function create (env, ctx) {
 
   if (process.env.NODE_ENV === 'development') {
     maxAge = 1;
-    console.log('Development environment detected, setting static file cache age to 1 second');
 
     app.get('/nightscout.appcache', function(req, res) {
       res.sendStatus(404);
@@ -222,12 +225,10 @@ function create (env, ctx) {
 
   // API docs
 
-  const swaggerUi = require('swagger-ui-express');
-  const swaggerDocument = require('./swagger.json');
 
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-  app.use('/swagger-ui-dist', (req, res, next) => {
+  app.use('/swagger-ui-dist', (req, res) => {
     res.redirect(307, '/api-docs');
   });
 
@@ -235,30 +236,6 @@ function create (env, ctx) {
   // if production, rely on postinstall script to run packaging for us
 
   app.locals.bundle = '/bundle';
-
-  if (process.env.NODE_ENV === 'development') {
-
-    console.log('Development mode');
-
-    app.locals.bundle = '/devbundle';
-
-    const webpack = require('webpack');
-    var webpack_conf = require('./webpack.config');
-    const middleware = require('webpack-dev-middleware');
-    const compiler = webpack(webpack_conf);
-
-    app.use(
-      middleware(compiler, {
-        // webpack-dev-middleware options
-        publicPath: webpack_conf.output.publicPath
-        , lazy: false
-      })
-    );
-
-    app.use(require("webpack-hot-middleware")(compiler, {
-      heartbeat: 1000
-    }));
-  }
 
   // Production bundling
   var tmpFiles;
@@ -277,11 +254,6 @@ function create (env, ctx) {
 
   if (process.env.NODE_ENV !== 'development') {
 
-    console.log('Production environment detected, enabling Minify');
-
-    var minify = require('express-minify');
-    var myCssmin = require('cssmin');
-
     app.use(minify({
       js_match: /\.js/
       , css_match: /\.css/
@@ -290,18 +262,16 @@ function create (env, ctx) {
       , stylus_match: /stylus/
       , coffee_match: /coffeescript/
       , json_match: /json/
-      , cssmin: myCssmin
+      , cssmin
       , cache: __dirname + '/tmp'
       , onerror: undefined
     , }));
-
   }
 
   // Handle errors with express's errorhandler, to display more readable error messages.
-  var errorhandler = require('errorhandler');
   //if (process.env.NODE_ENV === 'development') {
   app.use(errorhandler());
   //}
   return app;
 }
-module.exports = create;
+export default create;

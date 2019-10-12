@@ -1,5 +1,5 @@
-
-$ = require("jquery");
+import $ from "jquery";
+window.$ = window.$ || $;
 
 window.Nightscout = {
     client: require('../lib/client/clock-client'),

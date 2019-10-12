@@ -21,13 +21,14 @@
 // Description: Basic web server to display data from Dexcom G4.  Requires a database that contains
 // the Dexcom SGV data.
 'use strict';
+const esrequire = require("esm")(module);
 
 ///////////////////////////////////////////////////
 // DB Connection setup and utils
 ///////////////////////////////////////////////////
 
-var env = require('./env')( );
-var language = require('./lib/language')();
+var env = esrequire('./env')( );
+var language = esrequire('./lib/language')();
 var translate = language.set(env.settings.language).translate;
 
 ///////////////////////////////////////////////////
@@ -38,15 +39,15 @@ var HOSTNAME = env.HOSTNAME;
 
 function create (app) {
   var transport = (env.ssl
-                ? require('https') : require('http'));
+                ? esrequire('https') : esrequire('http'));
   if (env.ssl) {
     return transport.createServer(env.ssl, app);
   }
   return transport.createServer(app);
 }
 
-require('./lib/server/bootevent')(env, language).boot(function booted (ctx) {
-    var app = require('./app')(env, ctx);
+esrequire('./lib/server/bootevent').default(env, language).boot(function booted (ctx) {
+    var app = esrequire('./app').default(env, ctx);
     var server = create(app).listen(PORT, HOSTNAME);
     console.log(translate('Listening on port'), PORT, HOSTNAME);
 
@@ -57,7 +58,7 @@ require('./lib/server/bootevent')(env, language).boot(function booted (ctx) {
     ///////////////////////////////////////////////////
     // setup socket io for data and message transmission
     ///////////////////////////////////////////////////
-    var websocket = require('./lib/server/websocket')(env, ctx, server);
+    var websocket = esrequire('./lib/server/websocket').default(env, ctx, server);
 
     ctx.bus.on('data-processed', function() {
       websocket.update();

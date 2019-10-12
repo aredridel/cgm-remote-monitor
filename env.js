@@ -7,7 +7,7 @@ var _startsWith = require('lodash/startsWith');
 var _camelCase = require('lodash/camelCase');
 
 var fs = require('fs');
-var crypto = require('crypto');
+var createHash = require('create-hash');
 var consts = require('./lib/constants');
 
 var env = {
@@ -87,7 +87,7 @@ function setAPISecret() {
       console.error(msg);
       env.err = {desc: msg};
     } else {
-      var shasum = crypto.createHash('sha1');
+      var shasum = createHash('sha1');
       shasum.update(readENV('API_SECRET'));
       env.api_secret = shasum.digest('hex');
 
