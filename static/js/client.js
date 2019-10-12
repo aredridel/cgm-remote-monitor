@@ -1,11 +1,17 @@
 'use strict';
 
-$(document).on('online', function() {
+window.addEventListener('online', function() {
 	console.log('Application got online event, reloading');
 	window.location.reload();
 });
 
-$(document).ready(function() {
+if (document.readyState == 'complete') {
+	load();
+} else {
+	window.addEventListener('load', load);
+}
+
+function load() {
 	console.log('Application got ready event');
 	window.Nightscout.client.init();
-});
+}
